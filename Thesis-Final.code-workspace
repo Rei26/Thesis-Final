@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "Thesis-Final",
+			"path": "."
+		},
+		{
+			"name": "isaacsim",
+			"path": "../../../../isaacsim"
+		}
+	],
+	"settings": {}
+}

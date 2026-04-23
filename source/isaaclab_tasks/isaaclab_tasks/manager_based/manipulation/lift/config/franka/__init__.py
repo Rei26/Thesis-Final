@@ -75,3 +75,27 @@ gym.register(
     },
     disable_env_checker=True,
 )
+
+##
+# Randomized-obstacle grasping (thesis training condition)
+##
+
+gym.register(
+    id="Isaac-Franka-Grasping-v0",
+    entry_point="isaaclab_tasks.manager_based.manipulation.lift.config.franka.franka_grasping_env:FrankaGraspingEnvWithMetrics",
+    kwargs={
+        "env_cfg_entry_point": "isaaclab_tasks.manager_based.manipulation.lift.config.franka.franka_grasping_env:FrankaGraspingEnvCfg",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+    },
+    disable_env_checker=True,
+)
+
+gym.register(
+    id="Isaac-Franka-Grasping-Play-v0",
+    entry_point="isaaclab_tasks.manager_based.manipulation.lift.config.franka.franka_grasping_env:FrankaGraspingEnvWithMetrics",
+    kwargs={
+        "env_cfg_entry_point": "isaaclab_tasks.manager_based.manipulation.lift.config.franka.franka_grasping_env:FrankaGraspingEnvCfg_PLAY",
+        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
+    },
+    disable_env_checker=True,
+)

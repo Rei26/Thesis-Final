@@ -73,3 +73,14 @@ tests/
 # TacSL sensor
 **/tactile_record/*
 **/gelsight_r15_data/*
+--reset-user/
+cache/
+*.bin
+
+--reset-user/
+.kit_portable/
+
+
+--reset-user/
+.kit_portable/
+
