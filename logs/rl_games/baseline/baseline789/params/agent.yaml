@@ -72,4 +72,4 @@ params:
     seq_len: 4
     bounds_loss_coef: 0.0001
     train_dir: C:\Users\Rei\Documents\Thesis-Final\logs\rl_games\franka_lift
-    full_experiment_name: 2026-04-23_17-28-09
+    full_experiment_name: 2026-04-24_10-33-21
