@@ -1,0 +1,12 @@
+policy_family,tag,title,n_seeds,last_value_mean,last_value_std,last_value_min,last_value_max
+Baseline,rewards/iter,Total Reward per Iteration,3,116.12086995442708,7.364725555996466,111.02104187011719,124.56425476074219
+Baseline,Episode/Episode_Reward/lifting_object,Lifting Object Reward,3,12.872748692830404,0.1661219720706434,12.775519371032715,13.064563751220703
+Baseline,Episode/Episode_Reward/reaching_object,Reaching Object Reward,3,0.7712197502454122,0.019747287188098414,0.7564937472343445,0.7936596870422363
+Baseline,Episode/Episode_Reward/action_rate,Action Rate Penalty,3,-1.9725334644317627,0.37900809477643704,-2.2162561416625977,-1.5358760356903076
+Baseline,Episode/Episode_Reward/joint_vel,Joint Velocity Penalty,3,-2.160268545150757,0.22903524561042704,-2.405578136444092,-1.9520301818847656
+Baseline,Episode/Curriculum/action_rate,Curriculum: Action Rate Weight,3,-0.10000000894069672,0.0,-0.10000000894069672,-0.10000000894069672
+Baseline,Episode/Curriculum/joint_vel,Curriculum: Joint Velocity Weight,3,-0.10000000894069672,0.0,-0.10000000894069672,-0.10000000894069672
+Baseline,Episode/Episode_Reward/object_goal_tracking,Object Goal Tracking,3,11.696454366048178,0.4992313281899482,11.271093368530273,12.246081352233887
+Baseline,Episode/Episode_Reward/object_goal_tracking_fine_grained,Object Goal Tracking Fine Grained,3,1.864005446434021,0.4171231286074134,1.474026083946228,2.3037986755371094
+Baseline,rewards/step,Step,3,116.12086995442708,7.364725555996466,111.02104187011719,124.56425476074219
+Baseline,rewards/time,Time,3,116.12086995442708,7.364725555996466,111.02104187011719,124.56425476074219

@@ -1,5 +1,5 @@
 params:
-  seed: 42
+  seed: 789
   env:
     clip_observations: 100.0
     clip_actions: 100.0
@@ -46,14 +46,14 @@ params:
     value_bootstrap: false
     num_actors: -1
     reward_shaper:
-      scale_value: 0.01
+      scale_value: 1.0
     normalize_advantage: true
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-4
+    learning_rate: 5e-4
     lr_schedule: adaptive
     schedule_type: legacy
-    kl_threshold: 0.01
+    kl_threshold: 0.016
     score_to_win: 100000000
     max_epochs: 1500
     save_best_after: 100
@@ -65,11 +65,11 @@ params:
     e_clip: 0.2
     horizon_length: 24
     minibatch_size: 24576
-    mini_epochs: 8
+    mini_epochs: 4
     critic_coef: 4
     clip_value: true
     clip_actions: false
     seq_len: 4
     bounds_loss_coef: 0.0001
+    full_experiment_name: baseline789
     train_dir: C:\Users\Rei\Documents\Thesis-Final\logs\rl_games\franka_lift
-    full_experiment_name: 2026-04-24_10-33-21

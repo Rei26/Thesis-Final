@@ -38,6 +38,8 @@ from isaaclab_tasks.manager_based.manipulation.lift.lift_env_cfg import (
 )
 
 
+# Thesis condition constants. These values define the randomized R16 training
+# distribution and the fixed BL/A/B/C evaluation benchmarks used for reporting.
 OBSTACLE_NAMES = ("obstacle_1", "obstacle_2", "obstacle_3", "obstacle_4")
 OBSTACLE_CONTACT_FORCE_THRESHOLD = 1.0
 OBSTACLE_SURFACE_PENALTY_STD = 0.05
@@ -71,8 +73,8 @@ TRAIN_CONTACT_PENALTY_FINAL_WEIGHT = -0.50
 TRAIN_OBSTACLE_PENALTY_CURRICULUM_STEPS = 6000
 TRAIN_POSITION_CURRICULUM_STEPS = 6000
 
-A_OBSTACLE_1_OFFSET = (-0.10, 0.10)
-A_OBSTACLE_2_OFFSET = (-0.10, -0.10)
+A_OBSTACLE_1_OFFSET = (-0.10, 0.075)
+A_OBSTACLE_2_OFFSET = (-0.10, -0.075)
 
 B_OBSTACLE_1_OFFSET = (-0.10, 0.13)
 B_OBSTACLE_2_OFFSET = (-0.10, -0.13)
@@ -89,6 +91,8 @@ GRASP_SUCCESS_CONSECUTIVE_STEPS = 50
 LIFT_PROGRESS_HEIGHT_THRESHOLD = OBJECT_REST_HEIGHT + 0.01
 LIFT_REWARD_HEIGHT_THRESHOLD = OBJECT_REST_HEIGHT + 0.02
 
+# Isaac Lab normally loads shared assets from Nucleus. The local fallbacks keep
+# evaluation and video playback reproducible on machines without remote asset access.
 REMOTE_FRANKA_USD_PATH = FRANKA_PANDA_CFG.spawn.usd_path
 REMOTE_OBJECT_USD_PATH = f"{ISAAC_NUCLEUS_DIR}/Props/Blocks/DexCube/dex_cube_instanceable.usd"
 REMOTE_TABLE_USD_PATH = f"{ISAAC_NUCLEUS_DIR}/Props/Mounts/SeattleLabTable/table_instanceable.usd"
@@ -302,13 +306,13 @@ def zero_obstacle_size_observation(env: ManagerBasedRLEnv) -> torch.Tensor:
     return torch.zeros((env.num_envs, 3), dtype=torch.float32, device=env.device)
 
 
-def no_obstacle_reward(env: ManagerBasedRLEnv, **_) -> torch.Tensor:
+def no_obstacle_reward(env: ManagerBasedRLEnv) -> torch.Tensor:
     """Return a zero reward term while preserving obstacle-term names for baseline parity."""
 
     return torch.zeros(env.num_envs, dtype=torch.float32, device=env.device)
 
 
-def noop_obstacle_reset(env: ManagerBasedRLEnv, env_ids: torch.Tensor | None = None, **_) -> None:
+def noop_obstacle_reset(env: ManagerBasedRLEnv, env_ids: torch.Tensor | None = None) -> None:
     """Expose baseline obstacle reset slots without moving any physical assets."""
 
     return None
@@ -481,6 +485,8 @@ def _sample_constrained_obstacle_y_positions(
 ) -> torch.Tensor:
     """Sample obstacle y positions while preserving a minimum corridor around the cube."""
 
+    # Obstacles are placed on opposite sides of the object. Rejection sampling is
+    # used first; the fallback clamps any hard cases into the nearest valid slot.
     side_sign = 1.0 if position_offset_y >= 0.0 else -1.0
     remaining_mask = torch.ones_like(obj_center_y, dtype=torch.bool)
     chosen_y = torch.empty_like(obj_center_y)
@@ -640,6 +646,9 @@ def reset_obstacle_geometry_relative_to_object(
     env_ids_tensor = _resolve_env_ids(env, env_ids)
     asset: RigidObject = env.scene[asset_cfg.name]
     obj: RigidObject = env.scene[object_cfg.name]
+
+    # R16 training starts with easier obstacle placements and anneals to the
+    # final randomized distribution. Fixed benchmarks pass no curriculum values.
     curriculum_alpha = _curriculum_alpha(env, curriculum_steps)
     effective_position_offset = _lerp_pair(curriculum_start_position_offset, position_offset, curriculum_alpha)
     effective_position_jitter = _lerp_pair(curriculum_start_position_jitter, position_jitter, curriculum_alpha)
@@ -778,6 +787,9 @@ def _configure_franka_grasping_components(env_cfg) -> None:
     _configure_obstacle_contact_sensors(env_cfg)
 
 
+# Scene/observation/reward/event config blocks below are composed by the task
+# configs at the bottom of the file. Keeping them separate makes BL/A/B/C differ
+# only in the intended geometry and reset logic.
 def _make_obstacle_cfg(
     prim_path: str,
     init_pos: tuple[float, float, float],
@@ -871,6 +883,8 @@ class GraspingObservationsCfg(ObservationsCfg):
 
     @configclass
     class PolicyCfg(ObservationsCfg.PolicyCfg):
+        # Obstacle position + size features make the randomized R16 geometry
+        # observable to the policy instead of being hidden simulator state.
         obstacle_1_position = ObsTerm(
             func=mdp.object_position_in_robot_root_frame,
             params={"object_cfg": SceneEntityCfg("obstacle_1")},
@@ -897,6 +911,8 @@ class BaselineMatchedObservationsCfg(ObservationsCfg):
 
     @configclass
     class PolicyCfg(ObservationsCfg.PolicyCfg):
+        # The no-obstacle benchmark keeps the same observation width as R16.
+        # This lets evaluation compare policies without changing the task API.
         obstacle_1_position = ObsTerm(func=zero_obstacle_position_observation)
         obstacle_1_size = ObsTerm(func=zero_obstacle_size_observation)
         obstacle_2_position = ObsTerm(func=zero_obstacle_position_observation)
@@ -911,6 +927,8 @@ class GraspingBenchmarkCMatchedObservationsCfg(ObservationsCfg):
 
     @configclass
     class PolicyCfg(ObservationsCfg.PolicyCfg):
+        # Condition C has four obstacles, but R16 was trained with two obstacle
+        # slots. The nearest two obstacles are exposed to preserve policy shape.
         obstacle_1_position = ObsTerm(
             func=ranked_obstacle_position_observation,
             params={"rank": 0, "obstacle_names": ("obstacle_1", "obstacle_2", "obstacle_3", "obstacle_4")},
@@ -1026,6 +1044,8 @@ class GraspingCurriculumCfg(CurriculumCfg):
 class RandomizedObstacleEventCfg(EventCfg):
     """Current training task: fixed object, per-env obstacle size randomization plus per-reset position randomization."""
 
+    # Size randomization must happen before simulation startup so each replicated
+    # obstacle prim has the correct scale before physics views are created.
     randomize_obstacle_1_size = EventTerm(
         func=randomize_obstacle_size_prestartup,
         mode="prestartup",
@@ -1043,6 +1063,8 @@ class RandomizedObstacleEventCfg(EventCfg):
         },
     )
 
+    # Position randomization happens on every reset, so each episode samples a
+    # new obstacle layout around the fixed cube pose.
     reset_obstacle_1 = EventTerm(
         func=reset_obstacle_geometry_relative_to_object,
         mode="reset",
@@ -1104,6 +1126,8 @@ class FixedAEventCfg(EventCfg):
 class BaselineGraspingEventCfg(EventCfg):
     """Baseline reset layout that mirrors fixed-condition obstacle event names."""
 
+    # These no-op terms keep the baseline config structurally comparable with
+    # obstacle configs while avoiding any physical obstacle assets.
     reset_obstacle_1 = EventTerm(func=noop_obstacle_reset, mode="reset")
     reset_obstacle_2 = EventTerm(func=noop_obstacle_reset, mode="reset")
 
@@ -1174,6 +1198,9 @@ class FixedCEventCfg(EventCfg):
     )
 
 
+# Task configs referenced by __init__.py. Training uses FrankaGraspingEnvCfg for
+# R16; evaluation uses the fixed BL/A/B/C variants so every checkpoint sees the
+# same benchmark geometry.
 @configclass
 class FrankaGraspingBaselineEnvCfg(LiftEnvCfg):
     """True baseline with no obstacles."""
@@ -1346,6 +1373,8 @@ class FrankaGraspingEnvWithMetrics(ManagerBasedRLEnv):
     def step(self, action: torch.Tensor):
         obs, reward, terminated, truncated, info = super().step(action)
 
+        # These counters are training-time diagnostics. The evaluation script
+        # recomputes the same metrics from rollouts for the final thesis tables.
         self._step_count += 1
 
         past_warmup = self._step_count > GRASP_WARMUP_STEPS
@@ -1383,6 +1412,7 @@ class FrankaGraspingEnvWithMetrics(ManagerBasedRLEnv):
 
             if "log" not in info:
                 info["log"] = {}
+            # RL-Games writes values under info["log"] into TensorBoard summaries.
             info["log"]["metrics/grasp_success_rate"] = grasp_rate
             info["log"]["metrics/collision_frequency"] = coll_freq
             info["log"]["metrics/task_completion_time"] = completion_time

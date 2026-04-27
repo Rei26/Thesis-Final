@@ -1,22 +1,19 @@
-# Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2022-2026, The Isaac Lab Project Developers.
 # All rights reserved.
-#
 # SPDX-License-Identifier: BSD-3-Clause
-
+#
+# Thesis baseline PPO config. Keep these hyperparameters aligned with
+# rl_games_r16_ppo_cfg.yaml; only params.config.name should differ so that
+# baseline checkpoints/logs use the franka_lift namespace.
 params:
   seed: 42
-
-  # environment wrapper clipping
   env:
     clip_observations: 100.0
     clip_actions: 100.0
-
   algo:
     name: a2c_continuous
-
   model:
     name: continuous_a2c_logstd
-
   network:
     name: actor_critic
     separate: False
@@ -24,7 +21,6 @@ params:
       continuous:
         mu_activation: None
         sigma_activation: None
-
         mu_init:
           name: default
         sigma_init:
@@ -35,16 +31,14 @@ params:
       units: [256, 128, 64]
       activation: elu
       d2rl: False
-
       initializer:
         name: default
       regularizer:
         name: None
-
-  load_checkpoint: False # flag which sets whether to load the checkpoint
-  load_path: '' # path to the checkpoint to load
-
+  load_checkpoint: False
+  load_path: ''
   config:
+    # RL-Games uses this for checkpoint and TensorBoard naming.
     name: franka_lift
     env_name: rlgpu
     device: 'cuda:0'
@@ -57,14 +51,15 @@ params:
     value_bootstrap: False
     num_actors: -1
     reward_shaper:
-      scale_value: 0.01
+      scale_value: 1.0
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
-    learning_rate: 1e-4
+    # These are the matched PPO values used for both baseline and R16 thesis runs.
+    learning_rate: 5e-4
     lr_schedule: adaptive
     schedule_type: legacy
-    kl_threshold: 0.01
+    kl_threshold: 0.016
     score_to_win: 100000000
     max_epochs: 1500
     save_best_after: 100
@@ -76,7 +71,7 @@ params:
     e_clip: 0.2
     horizon_length: 24
     minibatch_size: 24576
-    mini_epochs: 8
+    mini_epochs: 4
     critic_coef: 4
     clip_value: True
     clip_actions: False

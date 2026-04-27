@@ -1,6 +1,10 @@
 # Copyright (c) 2022-2026, The Isaac Lab Project Developers.
 # All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
+#
+# Thesis R16 PPO config. Hyperparameters intentionally match rl_games_ppo_cfg.yaml;
+# only params.config.name differs so obstacle-training logs/checkpoints are
+# separated under the franka_grasping namespace.
 params:
   seed: 42
   env:
@@ -34,6 +38,7 @@ params:
   load_checkpoint: False
   load_path: ''
   config:
+    # RL-Games uses this for checkpoint and TensorBoard naming.
     name: franka_grasping
     env_name: rlgpu
     device: 'cuda:0'
@@ -50,6 +55,7 @@ params:
     normalize_advantage: True
     gamma: 0.99
     tau: 0.95
+    # These are the matched PPO values used for both baseline and R16 thesis runs.
     learning_rate: 5e-4
     lr_schedule: adaptive
     schedule_type: legacy
