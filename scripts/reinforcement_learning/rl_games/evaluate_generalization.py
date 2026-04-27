@@ -261,14 +261,14 @@ METRIC_SPECS = [
         "key": "episode_length",
         "title": "Episode Length",
         "ylabel": "Steps",
-        "ylim": (0.0, None),
+        "ylim": (245.0, 252.0),
         "higher_is_better": False,
     },
     {
         "key": "collision_frequency",
         "title": "Collision Frequency",
         "ylabel": "Fraction of Steps",
-        "ylim": (0.0, 1.0),
+        "ylim": (0.0, 0.2),
         "higher_is_better": False,
     },
     {
@@ -1032,6 +1032,8 @@ def metric_spec_for(key: str) -> dict:
 
 def _apply_metric_ylim(ax, values: list[float], spec: dict) -> None:
     y_min, y_max = spec.get("ylim", (None, None))
+    fixed_min = y_min is not None
+    fixed_max = y_max is not None
     finite = [v for v in values if math.isfinite(float(v))]
     if y_min is None and finite:
         y_min = min(finite)
@@ -1042,8 +1044,11 @@ def _apply_metric_ylim(ax, values: list[float], spec: dict) -> None:
     if y_min is not None and y_max is not None and math.isfinite(y_min) and math.isfinite(y_max):
         if y_max <= y_min:
             y_max = y_min + 1.0
-        margin = 0.08 * (y_max - y_min)
-        ax.set_ylim(y_min, y_max + margin)
+        if fixed_min and fixed_max:
+            ax.set_ylim(y_min, y_max)
+        else:
+            margin = 0.08 * (y_max - y_min)
+            ax.set_ylim(y_min, y_max + margin)
     elif y_min is not None:
         ax.set_ylim(bottom=y_min)
     elif y_max is not None:
