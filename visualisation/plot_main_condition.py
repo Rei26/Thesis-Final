@@ -12,7 +12,9 @@ If auto-discovery does not find the runs, pass them explicitly:
     .\isaaclab.bat -p visualisation\plot_main_condition.py ^
         --run_dirs logs\rl_games\obstacle_training\R16_final_s42 ^
                    logs\rl_games\obstacle_training\R16_final_s123 ^
-                   logs\rl_games\obstacle_training\R16_final_s789
+                   logs\rl_games\obstacle_training\R16_final_s456 ^
+                   logs\rl_games\obstacle_training\R16_final_s789 ^
+                   logs\rl_games\obstacle_training\R16_final_s999
 """
 
 from training_log_plotter import PROJECT_ROOT, PlotConfig, run

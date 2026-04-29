@@ -12,7 +12,7 @@ it refreshes:
 * episode_results.csv: one row per completed evaluation episode.
 * summary_by_checkpoint.csv: one row per checkpoint x evaluation condition.
 * summary_by_family.csv: Baseline/R16 mean +- std across trained seeds.
-* plots/: one plot per metric, with seed-detail and mean/std variants.
+* plots/: one plot per metric, with seed-detail, mean/std, and difference variants.
 
 The evaluation condition controls the environment. The policy family controls
 which PPO YAML is used to reconstruct each checkpoint:
@@ -28,15 +28,21 @@ Example:
       --checkpoints \\
           logs/rl_games/baseline/baseline42 \\
           logs/rl_games/baseline/baseline123 \\
+          logs/rl_games/baseline/baseline456 \\
           logs/rl_games/baseline/baseline789 \\
+          logs/rl_games/baseline/baseline999 \\
           logs/rl_games/obstacle_training/R16_final_s42 \\
           logs/rl_games/obstacle_training/R16_final_s123 \\
+          logs/rl_games/obstacle_training/R16_final_s456 \\
           logs/rl_games/obstacle_training/R16_final_s789 \\
-      --policy_labels BL_s42 BL_s123 BL_s789 R16_s42 R16_s123 R16_s789 \\
-      --policy_families Baseline Baseline Baseline R16 R16 R16 \\
-      --train_seeds 42 123 789 42 123 789 \\
-      --agent_cfgs rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml \\
-                   rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml \\
+          logs/rl_games/obstacle_training/R16_final_s999 \\
+      --policy_labels BL_s42 BL_s123 BL_s456 BL_s789 BL_s999 \\
+                      R16_s42 R16_s123 R16_s456 R16_s789 R16_s999 \\
+      --policy_families Baseline Baseline Baseline Baseline Baseline \\
+                        R16 R16 R16 R16 R16 \\
+      --train_seeds 42 123 456 789 999 42 123 456 789 999 \\
+      --agent_cfgs rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml rl_games_ppo_cfg.yaml \\
+                   rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml rl_games_r16_ppo_cfg.yaml \\
       --num_episodes 100 --num_envs 16 \\
       --output_dir results_and_plots --headless
 
@@ -1055,6 +1061,31 @@ def _apply_metric_ylim(ax, values: list[float], spec: dict) -> None:
         ax.set_ylim(top=y_max)
 
 
+def _apply_metric_xlim(ax, values: list[float], spec: dict) -> None:
+    x_min, x_max = spec.get("ylim", (None, None))
+    fixed_min = x_min is not None
+    fixed_max = x_max is not None
+    finite = [v for v in values if math.isfinite(float(v))]
+    if x_min is None and finite:
+        x_min = min(finite)
+        if x_min > 0:
+            x_min = 0.0
+    if x_max is None and finite:
+        x_max = max(finite)
+    if x_min is not None and x_max is not None and math.isfinite(x_min) and math.isfinite(x_max):
+        if x_max <= x_min:
+            x_max = x_min + 1.0
+        if fixed_min and fixed_max:
+            ax.set_xlim(x_min, x_max)
+        else:
+            margin = 0.08 * (x_max - x_min)
+            ax.set_xlim(x_min, x_max + margin)
+    elif x_min is not None:
+        ax.set_xlim(left=x_min)
+    elif x_max is not None:
+        ax.set_xlim(right=x_max)
+
+
 def _checkpoint_values_for_metric(checkpoint_rows: list[dict], condition: str, family: str, metric_key: str) -> list[tuple[str, float]]:
     values = []
     for row in checkpoint_rows:
@@ -1066,6 +1097,21 @@ def _checkpoint_values_for_metric(checkpoint_rows: list[dict], condition: str, f
         if math.isfinite(value):
             values.append((str(row.get("train_seed", row.get("policy_label", ""))), value))
     return values
+
+
+def _family_metric_row(family_rows: list[dict], condition: str, family: str) -> dict | None:
+    return next(
+        (
+            item
+            for item in family_rows
+            if item.get("eval_condition") == condition and item.get("policy_family") == family
+        ),
+        None,
+    )
+
+
+def _metric_direction_text(spec: dict) -> str:
+    return "Higher is better" if spec.get("higher_is_better", True) else "Lower is better"
 
 
 def plot_metric_seed_detail(
@@ -1172,44 +1218,182 @@ def plot_metric_mean_std(family_rows: list[dict], metric_key: str, output_path: 
 
     spec = metric_spec_for(metric_key)
     x = np.arange(len(conditions), dtype=float)
+    width = min(0.34, 0.76 / max(len(families), 1))
     fig, ax = plt.subplots(figsize=(max(9.5, len(conditions) * 1.9), 6.0))
     all_values = []
 
     for fam_idx, family in enumerate(families):
+        offset = (fam_idx - (len(families) - 1) / 2.0) * width
         means, stds = [], []
         for condition in conditions:
-            row = next(
-                (
-                    item
-                    for item in family_rows
-                    if item.get("eval_condition") == condition and item.get("policy_family") == family
-                ),
-                None,
-            )
+            row = _family_metric_row(family_rows, condition, family)
             means.append(_as_float(row.get(f"{metric_key}_mean")) if row else float("nan"))
             stds.append(_as_float(row.get(f"{metric_key}_std")) if row else float("nan"))
 
         means_np = np.array(means, dtype=float)
         stds_np = np.array(stds, dtype=float)
         color = FAMILY_COLORS.get(family, f"C{fam_idx}")
-        ax.plot(x, means_np, marker="o", linewidth=2.8, markersize=7, color=color, label=family)
-        lower = means_np - stds_np
-        upper = means_np + stds_np
-        finite = np.isfinite(means_np) & np.isfinite(stds_np)
-        if finite.any():
-            ax.fill_between(x, lower, upper, where=finite, color=color, alpha=0.18, interpolate=True)
-        all_values.extend(means_np[np.isfinite(means_np)].tolist())
+        positions = x + offset
+        finite = np.isfinite(means_np)
+        if not finite.any():
+            continue
+        yerr = np.where(np.isfinite(stds_np), stds_np, 0.0)
+        ax.errorbar(
+            positions[finite],
+            means_np[finite],
+            yerr=yerr[finite],
+            fmt="o",
+            markersize=8,
+            capsize=6,
+            elinewidth=2.1,
+            linewidth=0.0,
+            color=color,
+            markeredgecolor="black",
+            markeredgewidth=0.8,
+            label=f"{family} mean +- std",
+            zorder=3,
+        )
+        all_values.extend(means_np[finite].tolist())
+        upper = means_np + yerr
+        lower = means_np - yerr
         all_values.extend(upper[np.isfinite(upper)].tolist())
+        all_values.extend(lower[np.isfinite(lower)].tolist())
 
-    ax.set_title(f"{spec['title']} (Mean +- Std Across Seeds)", fontsize=18, weight="bold")
+    ax.set_title(f"{spec['title']} by Evaluation Condition", fontsize=18, weight="bold")
+    ax.text(
+        0.5,
+        1.015,
+        f"Independent conditions; {_metric_direction_text(spec).lower()}. Points show family mean, whiskers show std across seeds.",
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=10,
+        color="#444444",
+    )
     ax.set_ylabel(spec["ylabel"], fontsize=13)
     ax.set_xlabel("Evaluation Condition", fontsize=13)
     ax.set_xticks(x)
     ax.set_xticklabels(conditions, fontsize=12)
-    ax.grid(alpha=0.28)
+    ax.grid(axis="y", alpha=0.28)
     ax.set_axisbelow(True)
     ax.legend(loc="best", frameon=True)
     _apply_metric_ylim(ax, all_values, spec)
+    fig.tight_layout()
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    fig.savefig(output_path, dpi=220, bbox_inches="tight")
+    plt.close(fig)
+    return True
+
+
+def plot_metric_difference(family_rows: list[dict], metric_key: str, output_path: str) -> bool:
+    conditions = sort_conditions(sorted({row.get("eval_condition", "") for row in family_rows if row.get("eval_condition")}))
+    families = sort_families(sorted({row.get("policy_family", "") for row in family_rows if row.get("policy_family")}))
+    if len(conditions) == 0 or "Baseline" not in families or "R16" not in families:
+        return False
+
+    spec = metric_spec_for(metric_key)
+    y = np.arange(len(conditions), dtype=float)
+    fig, ax = plt.subplots(figsize=(10.0, max(4.8, len(conditions) * 1.05)))
+    all_values = []
+    baseline_color = FAMILY_COLORS.get("Baseline", "C0")
+    r16_color = FAMILY_COLORS.get("R16", "C1")
+
+    for cond_idx, condition in enumerate(conditions):
+        baseline_row = _family_metric_row(family_rows, condition, "Baseline")
+        r16_row = _family_metric_row(family_rows, condition, "R16")
+        if baseline_row is None or r16_row is None:
+            continue
+
+        baseline_mean = _as_float(baseline_row.get(f"{metric_key}_mean"))
+        r16_mean = _as_float(r16_row.get(f"{metric_key}_mean"))
+        baseline_std = _as_float(baseline_row.get(f"{metric_key}_std"), 0.0)
+        r16_std = _as_float(r16_row.get(f"{metric_key}_std"), 0.0)
+        if not (math.isfinite(baseline_mean) and math.isfinite(r16_mean)):
+            continue
+
+        all_values.extend([baseline_mean, r16_mean])
+        if math.isfinite(baseline_std):
+            all_values.extend([baseline_mean - baseline_std, baseline_mean + baseline_std])
+        if math.isfinite(r16_std):
+            all_values.extend([r16_mean - r16_std, r16_mean + r16_std])
+
+        ax.plot(
+            [baseline_mean, r16_mean],
+            [y[cond_idx], y[cond_idx]],
+            color="#666666",
+            linewidth=2.2,
+            alpha=0.55,
+            zorder=1,
+        )
+        ax.errorbar(
+            baseline_mean,
+            y[cond_idx],
+            xerr=baseline_std if math.isfinite(baseline_std) else 0.0,
+            fmt="o",
+            markersize=9,
+            capsize=5,
+            color=baseline_color,
+            markeredgecolor="black",
+            markeredgewidth=0.8,
+            label="Baseline mean +- std" if cond_idx == 0 else None,
+            zorder=3,
+        )
+        ax.errorbar(
+            r16_mean,
+            y[cond_idx],
+            xerr=r16_std if math.isfinite(r16_std) else 0.0,
+            fmt="o",
+            markersize=9,
+            capsize=5,
+            color=r16_color,
+            markeredgecolor="black",
+            markeredgewidth=0.8,
+            label="R16 mean +- std" if cond_idx == 0 else None,
+            zorder=4,
+        )
+
+        delta = r16_mean - baseline_mean
+        r16_better = delta > 0.0 if spec.get("higher_is_better", True) else delta < 0.0
+        delta_color = r16_color if r16_better else baseline_color
+        if abs(delta) < 1e-12:
+            delta_color = "#555555"
+        text_x = max(baseline_mean, r16_mean)
+        ax.annotate(
+            f"R16-BL {delta:+.3g}",
+            (text_x, y[cond_idx]),
+            textcoords="offset points",
+            xytext=(8, -2),
+            ha="left",
+            va="center",
+            fontsize=9,
+            color=delta_color,
+            zorder=5,
+        )
+
+    if not all_values:
+        plt.close(fig)
+        return False
+
+    ax.set_title(f"{spec['title']}: Baseline vs R16", fontsize=18, weight="bold")
+    ax.text(
+        0.5,
+        1.015,
+        f"Dumbbell comparison within each independent condition; {_metric_direction_text(spec).lower()}.",
+        transform=ax.transAxes,
+        ha="center",
+        va="bottom",
+        fontsize=10,
+        color="#444444",
+    )
+    ax.set_xlabel(spec["ylabel"], fontsize=13)
+    ax.set_ylabel("Evaluation Condition", fontsize=13)
+    ax.set_yticks(y)
+    ax.set_yticklabels(conditions, fontsize=12)
+    ax.invert_yaxis()
+    ax.grid(axis="x", alpha=0.28)
+    ax.set_axisbelow(True)
+    ax.legend(loc="best", frameon=True)
+    _apply_metric_xlim(ax, all_values, spec)
     fig.tight_layout()
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     fig.savefig(output_path, dpi=220, bbox_inches="tight")
@@ -1235,35 +1419,43 @@ def save_dashboard(family_rows: list[dict], metric_keys: list[str], output_path:
     for ax, metric_key in zip(axes, metric_keys):
         spec = metric_spec_for(metric_key)
         all_values = []
+        width = min(0.34, 0.76 / max(len(families), 1))
         for fam_idx, family in enumerate(families):
+            offset = (fam_idx - (len(families) - 1) / 2.0) * width
             means, stds = [], []
             for condition in conditions:
-                row = next(
-                    (
-                        item
-                        for item in family_rows
-                        if item.get("eval_condition") == condition and item.get("policy_family") == family
-                    ),
-                    None,
-                )
+                row = _family_metric_row(family_rows, condition, family)
                 means.append(_as_float(row.get(f"{metric_key}_mean")) if row else float("nan"))
                 stds.append(_as_float(row.get(f"{metric_key}_std")) if row else float("nan"))
             means_np = np.array(means, dtype=float)
             stds_np = np.array(stds, dtype=float)
             color = FAMILY_COLORS.get(family, f"C{fam_idx}")
-            ax.plot(x, means_np, marker="o", linewidth=2.2, color=color, label=family)
-            finite = np.isfinite(means_np) & np.isfinite(stds_np)
+            finite = np.isfinite(means_np)
+            yerr = np.where(np.isfinite(stds_np), stds_np, 0.0)
             if finite.any():
-                ax.fill_between(x, means_np - stds_np, means_np + stds_np, where=finite, color=color, alpha=0.16)
+                ax.errorbar(
+                    (x + offset)[finite],
+                    means_np[finite],
+                    yerr=yerr[finite],
+                    fmt="o",
+                    markersize=5,
+                    capsize=3,
+                    linewidth=0.0,
+                    elinewidth=1.4,
+                    color=color,
+                    label=family,
+                )
             all_values.extend(means_np[np.isfinite(means_np)].tolist())
-            upper = means_np + stds_np
+            upper = means_np + yerr
+            lower = means_np - yerr
             all_values.extend(upper[np.isfinite(upper)].tolist())
+            all_values.extend(lower[np.isfinite(lower)].tolist())
 
         ax.set_title(spec["title"], fontsize=12, weight="bold")
         ax.set_ylabel(spec["ylabel"], fontsize=10)
         ax.set_xticks(x)
         ax.set_xticklabels(conditions)
-        ax.grid(alpha=0.25)
+        ax.grid(axis="y", alpha=0.25)
         _apply_metric_ylim(ax, all_values, spec)
 
     for ax in axes[len(metric_keys) :]:
@@ -1272,7 +1464,7 @@ def save_dashboard(family_rows: list[dict], metric_keys: list[str], output_path:
     handles, labels = axes[0].get_legend_handles_labels()
     if handles:
         fig.legend(handles, labels, loc="upper center", ncol=max(1, len(labels)), frameon=True)
-    fig.suptitle("Evaluation Summary Across BL/A/B/C", fontsize=16, weight="bold", y=0.995)
+    fig.suptitle("Evaluation Summary Across Independent BL/A/B/C Conditions", fontsize=16, weight="bold", y=0.995)
     fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.96))
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     fig.savefig(output_path, dpi=220, bbox_inches="tight")
@@ -1289,10 +1481,13 @@ def save_all_plots(checkpoint_rows: list[dict], family_rows: list[dict], output_
             continue
         seed_path = os.path.join(output_plot_dir, "seed_detail", f"{_slugify(metric_key)}_seed_detail.png")
         mean_path = os.path.join(output_plot_dir, "mean_std", f"{_slugify(metric_key)}_mean_std.png")
+        difference_path = os.path.join(output_plot_dir, "difference", f"{_slugify(metric_key)}_difference.png")
         if plot_metric_seed_detail(checkpoint_rows, family_rows, metric_key, seed_path):
             saved.append(seed_path)
         if plot_metric_mean_std(family_rows, metric_key, mean_path):
             saved.append(mean_path)
+        if plot_metric_difference(family_rows, metric_key, difference_path):
+            saved.append(difference_path)
 
     dashboard_path = os.path.join(output_plot_dir, "evaluation_dashboard.png")
     if save_dashboard(family_rows, [key for key in metric_keys if key in CORE_METRIC_KEYS], dashboard_path):

@@ -126,66 +126,48 @@ Run commands from the repository root.
 
 ### Baseline
 
-Train baseline seed `789`:
+Train the five baseline seeds `42`, `123`, `456`, `789`, and `999`. The command below shows seed `999`; repeat it with the other seed values and matching experiment names.
 
 ```powershell
 .\isaaclab.bat -p scripts\reinforcement_learning\rl_games\train.py `
   --task Isaac-Lift-Cube-Franka-v0 `
   --num_envs 4096 `
-  --seed 789 `
+  --seed 999 `
   --headless `
-  +agent.params.config.full_experiment_name=baseline789
+  +agent.params.config.full_experiment_name=baseline999
 ```
 
 The expected output folder is:
 
 ```text
-logs/rl_games/franka_lift/baseline789
+logs/rl_games/franka_lift/baseline999
 ```
 
 For the thesis evaluation layout, this run can be moved or copied to:
 
 ```text
-logs/rl_games/baseline/baseline789
+logs/rl_games/baseline/baseline999
 ```
 
 The saved `params/agent.yaml` should contain:
 
 ```yaml
-seed: 789
+seed: 999
 config:
   name: franka_lift
 ```
 
 ### R16 Main Condition
 
-Train R16 seeds:
+Train the five R16 main-condition seeds `42`, `123`, `456`, `789`, and `999`. The command below shows seed `999`; repeat it with the other seed values and matching `R16_final_s<seed>` experiment names.
 
 ```powershell
 .\isaaclab.bat -p scripts\reinforcement_learning\rl_games\train.py `
   --task Isaac-Franka-Grasping-v0 `
   --num_envs 4096 `
-  --seed 42 `
+  --seed 999 `
   --headless `
-  +agent.params.config.full_experiment_name=R16_final_s42
-```
-
-```powershell
-.\isaaclab.bat -p scripts\reinforcement_learning\rl_games\train.py `
-  --task Isaac-Franka-Grasping-v0 `
-  --num_envs 4096 `
-  --seed 123 `
-  --headless `
-  +agent.params.config.full_experiment_name=R16_final_s123
-```
-
-```powershell
-.\isaaclab.bat -p scripts\reinforcement_learning\rl_games\train.py `
-  --task Isaac-Franka-Grasping-v0 `
-  --num_envs 4096 `
-  --seed 789 `
-  --headless `
-  +agent.params.config.full_experiment_name=R16_final_s789
+  +agent.params.config.full_experiment_name=R16_final_s999
 ```
 
 The `+` is intentional. Hydra adds `full_experiment_name` at launch time.
@@ -209,11 +191,13 @@ http://localhost:6006
 After training is complete, generate TensorBoard-derived training plots:
 
 ```powershell
-.\isaaclab.bat -p visualisation\plot_baseline.py
+.\isaaclab.bat -p visualisation\plot_baseline.py `
+  --seeds 42 123 456 789 999
 ```
 
 ```powershell
-.\isaaclab.bat -p visualisation\plot_main_condition.py
+.\isaaclab.bat -p visualisation\plot_main_condition.py `
+  --seeds 42 123 456 789 999
 ```
 
 The plot scripts auto-discover the expected saved runs:
@@ -221,10 +205,14 @@ The plot scripts auto-discover the expected saved runs:
 ```text
 logs/rl_games/baseline/baseline42
 logs/rl_games/baseline/baseline123
+logs/rl_games/baseline/baseline456
 logs/rl_games/baseline/baseline789
+logs/rl_games/baseline/baseline999
 logs/rl_games/obstacle_training/R16_final_s42
 logs/rl_games/obstacle_training/R16_final_s123
+logs/rl_games/obstacle_training/R16_final_s456
 logs/rl_games/obstacle_training/R16_final_s789
+logs/rl_games/obstacle_training/R16_final_s999
 ```
 
 Outputs are written under:
@@ -249,31 +237,39 @@ $OutputDir = "results_and_plots"
 $Checkpoints = @(
   "logs\rl_games\baseline\baseline42",
   "logs\rl_games\baseline\baseline123",
+  "logs\rl_games\baseline\baseline456",
   "logs\rl_games\baseline\baseline789",
+  "logs\rl_games\baseline\baseline999",
   "logs\rl_games\obstacle_training\R16_final_s42",
   "logs\rl_games\obstacle_training\R16_final_s123",
-  "logs\rl_games\obstacle_training\R16_final_s789"
+  "logs\rl_games\obstacle_training\R16_final_s456",
+  "logs\rl_games\obstacle_training\R16_final_s789",
+  "logs\rl_games\obstacle_training\R16_final_s999"
 )
 
 $PolicyLabels = @(
-  "BL_s42", "BL_s123", "BL_s789",
-  "R16_s42", "R16_s123", "R16_s789"
+  "BL_s42", "BL_s123", "BL_s456", "BL_s789", "BL_s999",
+  "R16_s42", "R16_s123", "R16_s456", "R16_s789", "R16_s999"
 )
 
 $PolicyFamilies = @(
-  "Baseline", "Baseline", "Baseline",
-  "R16", "R16", "R16"
+  "Baseline", "Baseline", "Baseline", "Baseline", "Baseline",
+  "R16", "R16", "R16", "R16", "R16"
 )
 
 $TrainSeeds = @(
-  "42", "123", "789",
-  "42", "123", "789"
+  "42", "123", "456", "789", "999",
+  "42", "123", "456", "789", "999"
 )
 
 $AgentCfgs = @(
   "rl_games_ppo_cfg.yaml",
   "rl_games_ppo_cfg.yaml",
   "rl_games_ppo_cfg.yaml",
+  "rl_games_ppo_cfg.yaml",
+  "rl_games_ppo_cfg.yaml",
+  "rl_games_r16_ppo_cfg.yaml",
+  "rl_games_r16_ppo_cfg.yaml",
   "rl_games_r16_ppo_cfg.yaml",
   "rl_games_r16_ppo_cfg.yaml",
   "rl_games_r16_ppo_cfg.yaml"
@@ -311,10 +307,10 @@ foreach ($Task in $EvalTasks) {
 }
 ```
 
-The first condition uses `--clear_output` to start fresh. Later conditions append into the same CSVs. The expected checkpoint summary has 24 rows:
+The first condition uses `--clear_output` to start fresh. Later conditions append into the same CSVs. The expected checkpoint summary has 40 rows:
 
 ```text
-4 evaluation conditions x 2 policy families x 3 seeds = 24 rows
+4 evaluation conditions x 2 policy families x 5 seeds = 40 rows
 ```
 
 Outputs:
@@ -328,18 +324,55 @@ results_and_plots/plots/
 
 The evaluation script resolves each run directory to the highest final epoch checkpoint, expected to be `ep_1500`. It warns if a checkpoint or saved seed does not match the command-line label.
 
+## Final Evaluation Results
+
+The final saved evaluation in `results_and_plots/` contains:
+
+```text
+episode_results.csv:       4000 rows
+summary_by_checkpoint.csv: 40 rows
+summary_by_family.csv:     8 rows
+```
+
+This corresponds to:
+
+```text
+4 evaluation conditions x 2 policy families x 5 seeds x 100 episodes = 4000 episodes
+4 evaluation conditions x 2 policy families x 5 seeds = 40 checkpoint summaries
+4 evaluation conditions x 2 policy families = 8 family summaries
+```
+
+The table below reports family-level means across the five seeds. Grasp success rate is the primary thesis metric. Episode return, task completion time, collision frequency, near-obstacle rate, and clearance are supporting metrics used to interpret whether success is safe, efficient, and robust.
+
+| Condition | Policy | Grasp success | Episode return | Task time steps | Collision frequency | Near-obstacle rate | Mean clearance m |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| BL | Baseline | `1.000 +/- 0.000` | `140.9 +/- 12.5` | `80.8 +/- 1.7` | `0.0000 +/- 0.0000` | `0.0000` | n/a |
+| BL | R16 | `0.114 +/- 0.244` | `0.6 +/- 23.4` | `234.9 +/- 32.3` | `0.0000 +/- 0.0000` | `0.0000` | n/a |
+| A | Baseline | `0.930 +/- 0.101` | `129.6 +/- 23.5` | `96.4 +/- 22.1` | `0.0029 +/- 0.0062` | `0.0544` | `0.214` |
+| A | R16 | `1.000 +/- 0.000` | `133.4 +/- 4.8` | `81.4 +/- 1.5` | `0.0000 +/- 0.0000` | `0.0616` | `0.213` |
+| B | Baseline | `0.000 +/- 0.000` | `1.7 +/- 0.5` | `250.0 +/- 0.0` | `0.0075 +/- 0.0147` | `0.3474` | `0.094` |
+| B | R16 | `0.778 +/- 0.309` | `88.5 +/- 40.9` | `130.3 +/- 57.3` | `0.0120 +/- 0.0147` | `0.3796` | `0.130` |
+| C | Baseline | `0.382 +/- 0.156` | `42.8 +/- 18.0` | `205.1 +/- 19.8` | `0.1152 +/- 0.0525` | `0.4433` | `0.138` |
+| C | R16 | `0.892 +/- 0.150` | `105.9 +/- 22.7` | `110.4 +/- 27.7` | `0.0263 +/- 0.0410` | `0.1687` | `0.216` |
+
+The final results show a clear tradeoff. The baseline policy is strongest in the clean BL environment, where it reaches perfect success across all five seeds. The R16 policy sacrifices this clean-environment performance, but gains substantial obstacle robustness. The clearest improvement appears in Condition B, where the baseline fails completely while R16 reaches `0.778` mean grasp success. Condition C shows the same pattern in a cluttered setting: R16 reaches `0.892` mean success versus `0.382` for the baseline, with lower collision frequency and greater mean clearance. Condition A is easier for both policies, but R16 is more consistent and reaches `1.000` success across all seeds.
+
 ## Expected Saved Runs
 
-Before generating final plots, verify these six runs exist and have final epoch checkpoints:
+Before generating final plots, verify these ten runs exist and have final epoch checkpoints:
 
 | Family | Seed | Expected path |
 | --- | ---: | --- |
 | Baseline | 42 | `logs/rl_games/baseline/baseline42` |
 | Baseline | 123 | `logs/rl_games/baseline/baseline123` |
+| Baseline | 456 | `logs/rl_games/baseline/baseline456` |
 | Baseline | 789 | `logs/rl_games/baseline/baseline789` |
+| Baseline | 999 | `logs/rl_games/baseline/baseline999` |
 | R16 | 42 | `logs/rl_games/obstacle_training/R16_final_s42` |
 | R16 | 123 | `logs/rl_games/obstacle_training/R16_final_s123` |
+| R16 | 456 | `logs/rl_games/obstacle_training/R16_final_s456` |
 | R16 | 789 | `logs/rl_games/obstacle_training/R16_final_s789` |
+| R16 | 999 | `logs/rl_games/obstacle_training/R16_final_s999` |
 
 Each run should contain an `nn/last_*_ep_1500_*.pth` checkpoint and a saved `params/agent.yaml`.
 
@@ -356,24 +389,21 @@ both policy families across fixed BL/A/B/C benchmark environments.
 
 Use grasp success rate as the primary metric. Use collision frequency, clearance, task completion time, and return as supporting metrics to determine whether success is safe, efficient, and robust.
 
+The final interpretation should not claim that R16 dominates in every setting. Instead, the result is a specialization tradeoff: baseline PPO learns a strong clean lifting policy, while randomized obstacle-aware training produces a policy that is much more robust in physically restrictive obstacle conditions. This is most visible in Conditions B and C. Condition B also shows higher R16 seed variance, so the thesis should report the mean and standard deviation rather than only the average.
+
 ## Git Hygiene
 
-Do not use `git add .` blindly in this workspace. Isaac Lab generates many large or irrelevant files:
+Do not use `git add .` blindly in this workspace. Isaac Lab generates many large or irrelevant files. Some generated files are thesis-relevant and intentionally kept, such as final logs, checkpoints, CSVs, and plots. Others are cache or temporary runtime artifacts and should not be committed.
 
 ```text
 __pycache__/
 *.egg-info/
 _isaac_sim/
 outputs/
-logs/
-results_and_plots/
-thesis_plots/
 videos/
-*.pth
-events.out.tfevents*
 ```
 
-When preparing a commit, add source and documentation files selectively.
+When preparing a commit, add source files, documentation, final logs, final checkpoints, `results_and_plots/`, and `thesis_plots/` intentionally. Avoid temporary failed runs, cache directories, and unrelated simulator outputs.
 
 ## Attribution And External Dependencies
 

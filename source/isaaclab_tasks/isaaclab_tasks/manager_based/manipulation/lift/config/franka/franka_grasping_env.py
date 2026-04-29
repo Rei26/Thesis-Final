@@ -110,9 +110,9 @@ FORCE_LOCAL_ASSETS_ENV = "ISAACLAB_FRANKA_FORCE_LOCAL_ASSETS"
 
 
 def _prefer_local_assets() -> bool:
-    """Prefer local scene assets on Windows to avoid slow/failing remote fetches during playback."""
+    """Prefer local scene assets only when explicitly requested."""
 
-    default_value = "1" if sys.platform.startswith("win") else "0"
+    default_value = "0" if sys.platform.startswith("win") else "0"
     return os.environ.get(FORCE_LOCAL_ASSETS_ENV, default_value) == "1"
 
 

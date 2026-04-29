@@ -12,13 +12,15 @@ If auto-discovery does not find the runs, pass them explicitly:
     .\isaaclab.bat -p visualisation\plot_baseline.py ^
         --run_dirs logs\rl_games\baseline\baseline42 ^
                    logs\rl_games\baseline\baseline123 ^
-                   logs\rl_games\baseline\baseline789
+                   logs\rl_games\baseline\baseline456 ^
+                   logs\rl_games\baseline\baseline789 ^
+                   logs\rl_games\baseline\baseline999
 """
 
 from training_log_plotter import PROJECT_ROOT, PlotConfig, run
 
 
-# Auto-discovers the three baseline seed runs. The franka_lift fallback is kept
+# Auto-discovers the baseline seed runs. The franka_lift fallback is kept
 # for runs produced before they were moved under logs/rl_games/baseline.
 CONFIG = PlotConfig(
     family_name="Baseline",

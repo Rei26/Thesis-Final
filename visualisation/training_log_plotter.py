@@ -56,7 +56,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 
-DEFAULT_SEEDS = ("42", "123", "789")
+DEFAULT_SEEDS = ("42", "123", "456", "789", "999")
 COLORS = ("#4C72B0", "#DD8452", "#55A868", "#8172B3", "#64B5CD")
 SMOOTH_WEIGHT = 0.85
 
