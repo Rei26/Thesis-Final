@@ -376,35 +376,6 @@ Before generating final plots, verify these ten runs exist and have final epoch 
 
 Each run should contain an `nn/last_*_ep_1500_*.pth` checkpoint and a saved `params/agent.yaml`.
 
-## Interpreting Results
-
-Recommended thesis framing:
-
-```text
-Both policy families were trained with the same PPO architecture and hyperparameters.
-The baseline was trained on the no-obstacle lifting task, while R16 was trained
-with randomized obstacle-aware grasping. Generalization was evaluated by testing
-both policy families across fixed BL/A/B/C benchmark environments.
-```
-
-Use grasp success rate as the primary metric. Use collision frequency, clearance, task completion time, and return as supporting metrics to determine whether success is safe, efficient, and robust.
-
-The final interpretation should not claim that R16 dominates in every setting. Instead, the result is a specialization tradeoff: baseline PPO learns a strong clean lifting policy, while randomized obstacle-aware training produces a policy that is much more robust in physically restrictive obstacle conditions. This is most visible in Conditions B and C. Condition B also shows higher R16 seed variance, so the thesis should report the mean and standard deviation rather than only the average.
-
-## Git Hygiene
-
-Do not use `git add .` blindly in this workspace. Isaac Lab generates many large or irrelevant files. Some generated files are thesis-relevant and intentionally kept, such as final logs, checkpoints, CSVs, and plots. Others are cache or temporary runtime artifacts and should not be committed.
-
-```text
-__pycache__/
-*.egg-info/
-_isaac_sim/
-outputs/
-videos/
-```
-
-When preparing a commit, add source files, documentation, final logs, final checkpoints, `results_and_plots/`, and `thesis_plots/` intentionally. Avoid temporary failed runs, cache directories, and unrelated simulator outputs.
-
 ## Attribution And External Dependencies
 
 This project is built on NVIDIA Isaac Lab and Isaac Sim. The upstream Isaac Lab code is retained under its original licenses. See:
@@ -431,5 +402,3 @@ The thesis-specific Python code, task configuration, plotting scripts, and evalu
 | OpenUSD / Pixar USD Python APIs | USD scene inspection and local asset handling through Isaac Sim/Isaac Lab. | <https://www.pixar.com/openusd> |
 
 The thesis-specific additions are the Franka obstacle-grasping environment, fixed BL/A/B/C benchmark configs, matched PPO YAML organization, saved experiment workflow, training-log plotting scripts, and generalization evaluation script.
-
-When writing the thesis or publishing derived work, cite Isaac Lab/Isaac Sim and any external framework used in the reported experiments according to the corresponding license and citation guidance.
