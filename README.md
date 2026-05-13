@@ -221,6 +221,8 @@ Outputs are written under:
 thesis_plots/training/
 ```
 
+The full TensorBoard-derived training plot set is available in this folder, split by policy family under `baseline/` and `r16_main_condition/`. The summary CSVs in each subfolder provide the plotted scalar histories and seed-level summaries.
+
 Baseline TensorBoard logs do not contain all custom R16 metrics, such as obstacle collision frequency during training. The plotter skips missing metrics and continues.
 
 ## Generalization Evaluation
@@ -321,6 +323,8 @@ results_and_plots/summary_by_checkpoint.csv
 results_and_plots/summary_by_family.csv
 results_and_plots/plots/
 ```
+
+The full evaluation plot set generated from the evaluation CSVs is available in `results_and_plots/plots/`, including family-level mean/std summaries and seed-detail plots.
 
 The evaluation script resolves each run directory to the highest final epoch checkpoint, expected to be `ep_1500`. It warns if a checkpoint or saved seed does not match the command-line label.
 
